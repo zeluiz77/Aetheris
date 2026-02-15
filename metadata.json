@@ -1,0 +1,9 @@
+{
+  "name": "Aetheris - O Futuro da Economia de Inteligência Descentralizada",
+  "description": "Um portal completo para o lançamento e visualização da criptomoeda Aetheris ($AETHR), apresentando tokenomics, roadmap, whitepaper e um arquiteto de IA interativo.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
