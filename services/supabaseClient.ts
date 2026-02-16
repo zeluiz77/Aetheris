@@ -1,30 +1,44 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+// Limpeza de strings para evitar espaços em branco acidentais
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
 
-export const isCloudEnabled = !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
+// Uma chave Supabase válida DEVE começar com 'eyJ'
+const isValidKey = SUPABASE_ANON_KEY.startsWith('eyJ');
 
-// Inicializa o cliente apenas se as chaves existirem
-export const supabase = isCloudEnabled 
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+export const isCloudEnabled = !!SUPABASE_URL && isValidKey;
+
+let supabaseInstance = null;
+
+if (isCloudEnabled) {
+  try {
+    // Tentativa segura de criar o cliente
+    supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("Aetheris: Conexão Cloud estabelecida.");
+  } catch (error) {
+    console.error("Aetheris: Falha crítica na configuração do Supabase:", error);
+    supabaseInstance = null;
+  }
+} else {
+  console.warn("Aetheris: Modo Sandbox (Local). Verifique se SUPABASE_URL e SUPABASE_ANON_KEY (iniciando com eyJ) estão corretos.");
+}
+
+export const supabase = supabaseInstance;
 
 export class CloudStorage {
   static async query(table: string, action: 'select' | 'insert' | 'update', data?: any) {
-    if (!supabase) {
-      console.warn("Aetheris: Cloud desabilitada. Usando VirtualDB.");
-      return null;
+    if (!supabase) return null;
+    
+    try {
+      let queryBuilder = supabase.from(table);
+      if (action === 'select') return await queryBuilder.select('*');
+      if (action === 'insert') return await queryBuilder.insert(data);
+      if (action === 'update') return await queryBuilder.update(data).match({ id: data.id });
+    } catch (e) {
+      console.error("Cloud Query Error:", e);
     }
-    
-    // Implementação genérica para facilitar chamadas no backendService
-    let queryBuilder = supabase.from(table);
-    
-    if (action === 'select') return await queryBuilder.select('*');
-    if (action === 'insert') return await queryBuilder.insert(data);
-    if (action === 'update') return await queryBuilder.update(data).match({ id: data.id });
-    
     return null;
   }
 }
